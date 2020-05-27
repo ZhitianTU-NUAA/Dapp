@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Give origin bids</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  </head>
+  <style>
+    input {
+      display: block;
+      margin-bottom: 12px;
+    }
+  </style>
+  <body>
+    <h1>Give origin Bids</h1>
+    <p>距离初始出价结束还剩<strong class="remainingOriBidTime">loading...</strong> 秒.</p>
+    <p>距离本轮拍卖结束还剩<strong id="remainingOriBidTime">loading...</strong> 秒.</p>
+<!--    <p>You have <strong class="balance">loading...</strong> META</p>-->
+    <h1>请发送你的出价：</h1>
+
+<!--    <label for="amount">Amount:</label>-->
+    <label for="SDbids">初始出价：</label>
+    <input type="text" id="SDbids" placeholder="e.g. 1,2,3,4,5" />
+
+<!--    <label for="receiver">To address:</label>-->
+<!--    <input-->
+<!--      type="text"-->
+<!--      id="receiver"-->
+<!--      placeholder="e.g. 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae"-->
+<!--    />-->
+
+    <button onclick="App.sendCoin()">Send origin bid</button>
+
+    <p id="status"></p>
+<!--    <p>-->
+<!--      <strong>Hint:</strong> open the browser developer console to view any-->
+<!--      errors and warnings.-->
+<!--    </p>-->
+    <script src="main1.js">
+
+    </script>
+  </body>
+</html>
