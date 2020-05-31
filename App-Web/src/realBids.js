@@ -5,7 +5,9 @@ const App = {
     web3: null,
     account: null,
     meta: null,
-
+    delta: null,
+    epsilon: null,
+    userKind: null,
     start: async function() {
         const { web3 } = this;
 
@@ -63,8 +65,10 @@ const App = {
                 const {Delta} =  this.meta.methods;
                 const {Epsilon} = this.meta.methods;
                 const delta = await Delta().call();
+                this.delta = delta;
                 const epsilon = await Epsilon().call();
-                DomCurrentInf.innerHTML = "初始出价阶段有"+ numberOfUsers +"个用户参与了出价，混淆函数 Epsilon="+epsilon+",Distance="+delta+"。";
+                this.epsilon = epsilon
+                    DomCurrentInf.innerHTML = "初始出价阶段有"+ numberOfUsers +"个用户参与了出价，混淆函数 Epsilon="+epsilon+",Distance="+delta+"。";
 
                 // DomCurrentInf.removeAttribute("hidden");
                 //window.location.href = "realBids.html";//跳转到百度首页
@@ -132,21 +136,34 @@ const App = {
     },
 
     //带入原始数据，调用函数得到加密后的出家，以string格式返回
-    obtainOxfordBids: function (raw,Epsilon,Delta) {
+    obtainOxfordBids: function () {
         //let queryVal=this.getRaw();
         $.ajax({
             type: "get",
-            url: "http://localhost:8001/hello/?raw=100,102,105,101,115&epsilon=1&delta=2",
+            url: "http://localhost:8001/hello/?raw="+this.getRaw()["raw"]+"&epsilon="+this.epsilon+"&delta="+this.delta,
             dataType: "jsonp",
             contentType: "application/jsonp;charset=utf-8",
             jsonp:"callback",
             async: false,
-            success: function(data){
-                const show = document.getElementById("status")
-                if (data.success){
-                    show.innerHTML = eeeeee;
-                }else{
-                    show.innerText = "出现错误："+data.msg;
+            success: async function (data) {
+                const show = document.getElementById("status");
+                if (data.success) {
+                    let arr = [];
+                    let list = data.split(",");
+                    // deMyarr存放解密后的数组
+                    for (let i = 0; i < 5; i++) {
+                        arr[i] = parseInt(list[i]);
+                    }
+                    if (App.userKind == 0){
+                        const {reSells} = this.meta.methods;
+                        await reSells(arr).send({from: this.account});
+                    }else{
+                        const {reBids} = this.meta.methods;
+                        await reBids(arr).send({from: this.account});
+                    }
+
+                } else {
+                    show.innerText = "出现错误：" + data.msg;
                 }
 
 

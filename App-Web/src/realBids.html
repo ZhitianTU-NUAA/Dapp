@@ -13,13 +13,19 @@
 <body>
 <p>您已给出初始出价！</p>
 <p id="currentInf">正在加载拍卖信息，请稍后。</p>
-<h1>SD give their real bids</h1>
+<h1>Users give their real bids</h1>
 <p>距离初始出价阶段结束还剩<strong id="remainingOriBidTime0">loading...</strong> 秒.</p>
 <p>距离本轮拍卖结束还剩<strong id="remainingOriBidTime1">loading...</strong> 秒.</p>
 <!--    <p>You have <strong class="balance">loading...</strong> META</p>-->
 <!--<p id="currentInf" hidden="hidden">-->
 <!--&lt;!&ndash; 共有m个买家，n个卖家参与，混淆参数分别为：   &ndash;&gt;-->
 <!--</p>-->
+<p>请选择您的角色：</p>
+<select onchange="App.userKind=this.value;">
+    <option>Empty</option>
+    <option value=0>SPs</option>
+    <option value=1>SDs</option>
+</select>
 <p id="raw"></p>
 <h1>请发送你的最终出价：</h1>
 <button onclick="App.obtainOxfordBids()">解密初始出价信息并得出混淆函数。</button>

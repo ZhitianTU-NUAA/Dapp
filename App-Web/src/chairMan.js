@@ -7,8 +7,10 @@ const App = {
     web3: null,
     account: null,
     meta: null,
-    start: async function() {
-        const { web3 } = this;
+    SPNum: null,
+    SDNum: null,
+    start: async function () {
+        const {web3} = this;
 
         try {
             // get contract instance
@@ -27,7 +29,7 @@ const App = {
             console.error("Could not connect to contract or chain.");
         }
     },
-    renderForSDs: async function() {
+    renderForSDs: async function () {
         const {remainingOriBidTime} = this.meta.methods;
         const RemainingBidsOriTime = await remainingOriBidTime().call();
         const DomendBidsTime = document.getElementById("remainingOriBidTime0");
@@ -41,15 +43,19 @@ const App = {
         //2.声明定时器
         let timer = null;
         //3.开启定时器
-        timer = setInterval(show,1000);
+        timer = setInterval(show, 1000);
+
         //开启定时器后要执行的函数
-        async function show(){
-            if(seconds===0){
-               this.decryptBids();
+        async function show() {
+            if (seconds === 0) {
+                this.decryptBids();
             }
-            if(transSeconds===0){
+            if (transSeconds === 0) {
                 clearInterval(timer);//清除定时器
                 //window.location.href = "realBids.html";//跳转到百度首页
+                //开始计算资源分配以及投票和出价并将结果存放在IPFS中
+                //获取用户laplace加密后的出价
+                this.getAllocation();
                 return;
             }
             // //将不断变化的秒数显示在页面上
@@ -57,14 +63,14 @@ const App = {
 
             DomendBidsTime.innerHTML = seconds;
             DomTransTime.innerHTML = transSeconds;
-            if (seconds<=1){
+            if (seconds <= 1) {
                 seconds = 0;
-            }else {
+            } else {
                 seconds--;
             }
-            if (transSeconds<=1){
+            if (transSeconds <= 1) {
                 transSeconds = 0;
-            }else {
+            } else {
                 transSeconds--;
             }
             // DomTransTime1.innerHTML = transSeconds;
@@ -73,12 +79,16 @@ const App = {
     },
     //TODO
     // 引入IPFS 存储解密后的信息（数值及对应的加密值）以及laplace混淆函数,LAGs在本地进行解密以及计算混淆函数。
-    decryptBids: async function() {
+    decryptBids: async function () {
         const PRIVATE_KEY = "MIIBVwIBADANBgkqhkiG9w0BAQEFAASCAUEwggE9AgEAAkEAxuKIkltwgaGTOAot6YK0dqYk80Dvq67p446VPGm/mSsUVKVioNZiQfaGCF0dcbb0hgp/TV4DxR2ikJWx5cidewIDAQABAkEAo8OsyTbZ8SPmYWKgY4LorjooetShhTDGDkY9xD0fMzK85cLgzxxCsajXJejULNr65DpFXGQ96sGh7rus/UVEgQIhAPVpN5Pq9oL+Lj8/c7Od2JDqSRwpAYt42/UL0U/JBhqrAiEAz3dk5U0MUsxVQvBOJSC+ME1XuTjFeFJUtQMjF4PEiHECIQDavekTCFink8ZHC9imXeh96sY1unstBRIRjnIICqdNNwIhALCNzpNEymP79+MLVbVK9A9vAmRh58rJZcTVcpukSzBBAiEAkqbqo1RGs2mV6rNQjPOvhWKn3ojl/OMEmwhOWVcdN74=";
         //首先得到参与第一轮出价的用户总数
         const {getEncryptBidsById} = this.meta.methods;
         const {setLaplacePara} = this.meta.methods;
         const {getUsersNumber} = this.meta.methods;
+        const {getSPsNumber} = this.meta.methods;
+        const {getSDsNumber} = this.meta.methods;
+        this.SDNum = await getSDsNumber().call();
+        this.SPNum = await getSPsNumber().call();
         const userNumber = await getUsersNumber().call();
         const decrypt = new JSEncrypt();
         decrypt.setPrivateKey('-----BEGIN RSA PRIVATE KEY-----' + PRIVATE_KEY + '-----END RSA PRIVATE KEY-----');
@@ -94,7 +104,7 @@ const App = {
             let data = decrypt.decrypt(myarr[k - 1]);
             let list = data.split(",");
             // deMyarr存放解密后的数组
-            for (let i = 0;i < 5;i++){
+            for (let i = 0; i < 5; i++) {
                 deMyarr[k - 1][i] = parseInt(list[i]);
             }
             // list.forEach(item => {
@@ -110,7 +120,7 @@ const App = {
             min = 100000000000000000;
             max = 0;
             for (let j = 0; j < 5; j++) {
-                value = deMyarr[i-1][j];
+                value = deMyarr[i - 1][j];
                 if (value > max) {
                     max = value;
                 }
@@ -121,16 +131,50 @@ const App = {
         }
         const Epsilon = 1;
         const Delta = max - min;
-        await setLaplacePara(Epsilon,Delta).send({from:this.account});
+        await setLaplacePara(Epsilon, Delta).send({from: this.account});
         const DomDelta = document.getElementById("calcu");
-        DomDelta.innerHTML = "混淆函数参数：Epsilon="+Epsilon+",Delta="+Delta+"。";
+        DomDelta.innerHTML = "混淆函数参数：Epsilon=" + Epsilon + ",Delta=" + Delta + "。";
+    },
+    getAllocation: async function () {
+        //从区块链中获取到差分隐私加密后的数值
+        const {getReSDsBisById} = this.meta.methods;
+        let str = "";
+        var tArray = new Array(); //先声明一维
+        for (let i = 1; i < this.SDNum; i++) {
+            tArray[i - 1] = await getReSDsBisById(i).call(); //声明二维，每一个一维数组里面的一个元素都是一个数组
+        }
+        //二维数组转json
+        str = this.arrayToJsonString(tArray)
+        //通过post发送给后台Python服务器
+        $.post("http://localhost:8001/getAllocation",
+            {
+                oxfordBids: str
+            });
+
+    },
+    arrayToJsonString: function (o) {
+        var len = o.length;
+        var new_arr = new Array();
+        var str = '', strone = '', strs = '', jsonstr = '';
+        for (var i = 0; i < len; i++) {
+            new_arr = o[i];
+            for (var k in new_arr) {
+                strone += '"' + k + '"' + ':' + '"' + new_arr[k] + '"' + ',';
+            }
+            str = '{' + strone.substring(0, strone.length - 1) + '}';
+            strone = '';
+            strs += str + ',';
+            new_arr = [];
+        }
+        strs = '[' + strs.substring(0, strs.length - 1) + ']';
+        return strs;
     },
 
 };
 
 window.App = App;
 
-window.addEventListener("load", function() {
+window.addEventListener("load", function () {
     if (window.ethereum) {
         // use MetaMask's provider
         App.web3 = new Web3(window.ethereum);
