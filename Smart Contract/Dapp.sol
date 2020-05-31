@@ -13,6 +13,8 @@ contract Dapp{
     bool flag = false;
     uint public voteNum;
     uint public clearPrice;
+    uint public rebidNum = 0;
+    uint public resellNum = 0;
     constructor (uint32 i) public{
         chairperson = msg.sender;
         // NumberOfSlots = NumOfSlots;
@@ -25,19 +27,22 @@ contract Dapp{
     mapping(address=>uint256[5]) public Biders;
     mapping(address=>uint256[5]) public Sellers;
     mapping(address=>uint256) voteCount;
-    mapping(address=>string) public publicDecrpt;
+    mapping(address=>string) public publicLapEncrpt;
+    mapping(address=>string) public publicEnecrpt;
     mapping(address=>uint256[5]) public reBiders;
     mapping(address=>uint256[5]) public reSellers;
-    mapping(address=>address[5]) public winners;
+    mapping(uint=>address) public reBidersYS;
+    mapping(uint=>address) public reSellerYS;
     mapping(address=>address) public SDWinners;
-    mapping(address=>uint[5]) public winnerPrice;
+    mapping(address=>uint) public winnerPrice;
     mapping(address=>uint) public users;
     mapping(uint=>address) public AddressOfUsers;
     mapping(uint=>address) public addressOfSDs;
     mapping(uint=>address) public addressOfSPs;
     mapping(address=>uint256[5]) public allBids;
     mapping(address=>uint) public allMoney;
-    mapping(address=>uint) public SPWinners;
+    mapping(address=>address) public SPWinners;
+    string public IFPSkey;
     function SDsgiveRealBid(uint256[5] memory originBid) public payable{
         NumberOfSDs = NumberOfSDs + 1;
        // NumberOfUsers = NumberOfUsers + 1;
@@ -57,6 +62,15 @@ contract Dapp{
         //voteCount[msg.sender] = 1;
         allMoney[msg.sender] = msg.value;
     }
+    function setIFPSkey(string memory key) public{
+        require(msg.sender == chairperson);
+        require(now == endTime);
+        IFPSkey = key;
+    }
+    function getIFPSkey() public view returns(string memory){
+        require(now == endTime);
+        return IFPSkey;
+    }
     function giveOringinBid(uint256[5] memory originBid) public{
         NumberOfUsers = NumberOfUsers + 1;
         //Sellers[msg.sender] = originBid;
@@ -65,16 +79,23 @@ contract Dapp{
         allBids[msg.sender] = originBid;
         voteCount[msg.sender] = 1;
     }
-    function giveEncryptBids(string memory deOriginBid) public{
+    function giveEncryptBids(string memory enOriginBid) public{
         NumberOfUsers = NumberOfUsers + 1;
         //Sellers[msg.sender] = originBid;
         users[msg.sender] = NumberOfUsers;
         AddressOfUsers[NumberOfUsers] = msg.sender;
         voteCount[msg.sender] = 1;
-        publicDecrpt[msg.sender] = deOriginBid;
+        publicEnecrpt[msg.sender] = enOriginBid;
     }
     function getEncryptBidsById(uint id) public view returns (string memory){
-        return publicDecrpt[AddressOfUsers[id]];
+        return publicEnecrpt[AddressOfUsers[id]];
+    }
+    function giveLapEncryptBids(string memory enlapBid) public{
+        publicLapEncrpt[msg.sender] = enlapBid;
+        //缺少验证环节
+    }
+    function getLapEncryptBids(uint id) public view returns (string memory){
+        return  publicLapEncrpt[AddressOfUsers[id]];
     }
    function setLaplacePara(uint epsilon,uint delta) public{
        require(msg.sender==chairperson);
@@ -100,15 +121,18 @@ contract Dapp{
     // }
     function reBids(uint[5] memory SDRebids) public{
         reBiders[msg.sender] = SDRebids;
+        reBidersYS[rebidNum] = msg.sender;
+        rebidNum = rebidNum + 1;
     }
     function reSells(uint[5] memory SPRebids) public{
         reSellers[msg.sender] = SPRebids;
+        reSellerYS[resellNum] = msg.sender;
+        resellNum = resellNum + 1;
     }
-    function setWinnerMap(address seller,address[5] memory buyers,uint[5] memory price) public{
+    function setWinnerMap(address seller,address buyer,uint price) public{
         require(msg.sender==chairperson);
-        winners[seller] = buyers;
         winnerPrice[seller] = price;
-        SPWinners[seller] = 1;
+        SPWinners[seller] = buyer;
     }
     function setClearPrice(uint clearP)public{
         clearPrice = clearP;
@@ -146,8 +170,8 @@ contract Dapp{
         
     }
     function SPrefund()public{
-        require(canTrans());
-       require(SPWinners[msg.sender]!=0);
+       require(canTrans());
+       require(SPWinners[msg.sender]!=address(0));
        msg.sender.transfer(clearPrice);
     }
     function remainingOriBidTime() public view returns (uint){
@@ -158,5 +182,4 @@ contract Dapp{
     }
     
 }
-
 
